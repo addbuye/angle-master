@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Angle Master</title>
+  <meta name="description" content="See the angle. Guess the degrees. Perceptual scoring." />
+  <meta property="og:title" content="Angle Master" />
+  <meta property="og:description" content="5 rounds. 1 slider. Can your eye beat the math?" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%E2%88%A0</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090b; --bg-card: #18181b; --bg-elevated: #27272a;
+      --border: #27272a; --border-hover: #3f3f46;
+      --text: #fafafa; --text-secondary: #a1a1aa; --text-tertiary: #71717a;
+      --accent: #6366f1; --accent-hover: #818cf8; --accent-subtle: rgba(99,102,241,0.12);
+      --success: #22c55e; --warning: #eab308; --error: #ef4444;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3); --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+      --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px;
+    }
+
+    [data-theme="light"] {
+      --bg: #fafafa; --bg-card: #ffffff; --bg-elevated: #f4f4f5;
+      --border: #e4e4e7; --border-hover: #d4d4d8;
+      --text: #09090b; --text-secondary: #52525b; --text-tertiary: #a1a1aa;
+      --accent: #4f46e5; --accent-hover: #6366f1; --accent-subtle: rgba(79,70,229,0.08);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05); --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; transition: background 0.3s, color 0.3s;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      height: 6px; border-radius: 99px; outline: none;
+      background: var(--bg-elevated); transition: all 0.2s;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 28px; height: 28px;
+      border-radius: 50%; background: var(--accent); cursor: pointer;
+      border: 3px solid var(--bg); box-shadow: var(--shadow-md);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15); box-shadow: var(--shadow-lg);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--accent); cursor: pointer;
+      border: 3px solid var(--bg); box-shadow: var(--shadow-md);
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .tabular { font-variant-numeric: tabular-nums; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: inherit; font-weight: 600; font-size: 15px;
+      padding: 14px 24px; border-radius: var(--radius-md); border: none;
+      cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em;
+      position: relative; overflow: hidden;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); box-shadow: var(--shadow-md); }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--border-hover); box-shadow: var(--shadow-sm); }
+    .btn-ghost { background: transparent; color: var(--text-secondary); }
+    .btn-ghost:hover { color: var(--text); background: var(--accent-subtle); }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 24px;
+      box-shadow: var(--shadow-sm); transition: all 0.2s;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 99px; font-size: 11px;
+      font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    .scale-in { animation: scaleIn 0.3s ease-out; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+    // ═══════════════════════════════════════
+    // SCORING ENGINE (AngleE)
+    // ═══════════════════════════════════════
+
+    function sensitivityFactor(theta) {
+      const d90 = Math.min(Math.abs(theta % 90), 90 - Math.abs(theta % 90));
+      const d45 = Math.min(Math.abs((theta + 45) % 90), 90 - Math.abs((theta + 45) % 90));
+      return 1 + 0.8 * Math.max(Math.exp(-d90 / 12), Math.exp(-d45 / 14) * 0.6);
+    }
+
+    function computeAngleE(target, guess) {
+      const diff = Math.abs(target - guess);
+      const td = Math.min(diff, 180 - diff);
+      const sf = sensitivityFactor(target);
+      const ae = td * sf;
+      const base = 10 / (1 + Math.pow(ae / 9.8, 1.62));
+      let rec = 0, pen = 0;
+      if (td < 4) rec = (10 - base) * Math.max(0, 1 - Math.pow(td / 4, 1.4)) * 0.28;
+      if (td > 12 && sf > 1.3) pen = base * Math.max(0, (td - 12) / 45) * 0.18;
+      const final = Math.max(0, Math.min(10, base + rec - pen));
+      return {
+        thetaDiff: Math.round(td * 100) / 100, sf: Math.round(sf * 1000) / 1000,
+        angleE: Math.round(ae * 100) / 100, baseScore: Math.round(base * 100) / 100,
+        recovery: Math.round(rec * 100) / 100, penalty: Math.round(pen * 100) / 100,
+        finalScore: Math.round(final * 100) / 100,
+      };
+    }
+
+    // ═══════════════════════════════════════
+    // SEEDED RANDOM + ANGLE GENERATION
+    // ═══════════════════════════════════════
+
+    function mulberry32(a) {
+      return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    }
+    function getDailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+
+    const BANNED = new Set([0,10,15,20,25,30,45,60,90,120,135,150,180]);
+    function isBanned(a) { return BANNED.has(a) || a <= 3 || a >= 177; }
+
+    function generateAngles(seed, count = 5) {
+      const rng = mulberry32(seed);
+      const ranges = [[7,38],[39,68],[72,108],[112,148],[149,174]];
+      const angles = [];
+      for (let i = 0; i < count; i++) {
+        const [lo, hi] = ranges[i % ranges.length];
+        let a; do { a = Math.round(lo + rng() * (hi - lo)); } while (isBanned(a));
+        angles.push(a);
+      }
+      for (let i = angles.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [angles[i], angles[j]] = [angles[j], angles[i]]; }
+      return angles;
+    }
+
+    // ═══════════════════════════════════════
+    // MULTIPLAYER HELPERS
+    // ═══════════════════════════════════════
+
+    function generateRoomCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = ''; for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    function seedFromCode(code) {
+      let h = 0; for (let i = 0; i < code.length; i++) { h = ((h << 5) - h + code.charCodeAt(i)) | 0; }
+      return Math.abs(h);
+    }
+
+    function getPlayerName() {
+      let name = localStorage.getItem('am_name');
+      if (!name) { name = 'Player ' + Math.floor(Math.random() * 999); localStorage.setItem('am_name', name); }
+      return name;
+    }
+
+    // ═══════════════════════════════════════
+    // SVG COMPONENTS
+    // ═══════════════════════════════════════
+
+    function AngleSVG({ angle, color, opacity = 1, size = 200, sw = 2.5 }) {
+      const cx = size / 2, cy = size / 2, r = size * 0.38, ar = size * 0.15;
+      const rad = (angle * Math.PI) / 180;
+      const x2 = cx + r * Math.cos(-rad), y2 = cy + r * Math.sin(-rad);
+      const ax = cx + ar * Math.cos(-rad), ay = cy + ar * Math.sin(-rad);
+      return (
+        <g opacity={opacity}>
+          <line x1={cx} y1={cy} x2={cx + r} y2={cy} stroke={color} strokeWidth={sw} strokeLinecap="round" />
+          <line x1={cx} y1={cy} x2={x2} y2={y2} stroke={color} strokeWidth={sw} strokeLinecap="round" />
+          <path d={`M ${cx + ar} ${cy} A ${ar} ${ar} 0 ${angle > 180 ? 1 : 0} 0 ${ax} ${ay}`} fill="none" stroke={color} strokeWidth={1.5} opacity={0.6} />
+          <circle cx={cx} cy={cy} r={3.5} fill={color} />
+        </g>
+      );
+    }
+
+    function ScoreRing({ score, size = 80 }) {
+      const r = size * 0.38, circ = 2 * Math.PI * r, prog = (score / 10) * circ;
+      const c = score >= 8 ? "var(--success)" : score >= 5 ? "var(--warning)" : "var(--error)";
+      return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--bg-elevated)" strokeWidth={4} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={c} strokeWidth={4}
+            strokeDasharray={`${prog} ${circ}`} strokeLinecap="round"
+            transform={`rotate(-90 ${size/2} ${size/2})`}
+            style={{ transition: "stroke-dasharray 0.8s cubic-bezier(0.4,0,0.2,1)" }} />
+          <text x={size/2} y={size/2+1} textAnchor="middle" dominantBaseline="middle"
+            fill={c} fontSize={size*0.26} fontWeight="700" fontFamily="'JetBrains Mono',monospace">
+            {score.toFixed(1)}
+          </text>
+        </svg>
+      );
+    }
+
+    // ═══════════════════════════════════════
+    // THEME TOGGLE
+    // ═══════════════════════════════════════
+
+    function ThemeToggle({ theme, setTheme }) {
+      return (
+        <button onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+          className="btn-ghost" style={{ position:'fixed', top:16, right:16, zIndex:99, width:40, height:40, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+      );
+    }
+
+    // ═══════════════════════════════════════
+    // GAME PAGE
+    // ═══════════════════════════════════════
+
+    function GamePage({ onFinish, seed, playerName }) {
+      const angles = useMemo(() => generateAngles(seed), [seed]);
+      const [round, setRound] = useState(0);
+      const [guess, setGuess] = useState(90);
+      const [results, setResults] = useState([]);
+      const [showFeedback, setShowFeedback] = useState(false);
+      const [currentResult, setCurrentResult] = useState(null);
+      const target = angles[round];
+      const svgSize = 280;
+
+      useEffect(() => { setGuess(90); setShowFeedback(false); setCurrentResult(null); }, [round]);
+
+      const handleCheck = () => {
+        const r = computeAngleE(target, guess);
+        r.target = target; r.guess = guess;
+        setCurrentResult(r); setShowFeedback(true);
+      };
+      const handleNext = () => {
+        const nr = [...results, currentResult]; setResults(nr);
+        if (round < 4) setRound(round + 1); else onFinish(nr);
+      };
+
+      const scoreColor = s => s >= 8 ? "var(--success)" : s >= 5 ? "var(--warning)" : "var(--error)";
+
+      return (
+        <div className="fade-in" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:24, width:'100%', maxWidth:420, margin:'0 auto', padding:'0 20px' }}>
+          {/* Progress */}
+          <div style={{ display:'flex', gap:8, marginBottom:4 }}>
+            {[0,1,2,3,4].map(i => (
+              <div key={i} style={{
+                width: 32, height: 4, borderRadius: 99,
+                background: i < round ? 'var(--success)' : i === round ? 'var(--accent)' : 'var(--bg-elevated)',
+                transition: 'all 0.4s cubic-bezier(0.4,0,0.2,1)'
+              }} />
+            ))}
+          </div>
+
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <span style={{ color:'var(--text-tertiary)', fontSize:13, fontWeight:500 }}>Round {round + 1}/5</span>
+            {playerName && <span className="badge" style={{ background:'var(--accent-subtle)', color:'var(--accent)' }}>{playerName}</span>}
+          </div>
+
+          {/* Label */}
+          <div style={{ textAlign:'center' }}>
+            <span style={{ color:'var(--text-tertiary)', fontSize:11, fontWeight:600, letterSpacing:'0.12em', textTransform:'uppercase' }}>
+              {showFeedback ? 'Answer' : 'Estimate this angle'}
+            </span>
+            {showFeedback && <div className="mono tabular scale-in" style={{ fontSize:32, fontWeight:700, marginTop:4 }}>{target}&deg;</div>}
+          </div>
+
+          {/* SVG Canvas */}
+          <div className="card" style={{ padding:0, overflow:'hidden', width:svgSize, height:svgSize }}>
+            <svg width={svgSize} height={svgSize} style={{ display:'block' }}>
+              <rect width={svgSize} height={svgSize} fill="var(--bg-card)" />
+              {!showFeedback && <AngleSVG angle={target} color="var(--accent)" size={svgSize} sw={3} />}
+              {showFeedback && (
+                <>
+                  <AngleSVG angle={guess} color="var(--error)" opacity={0.45} size={svgSize} sw={2.5} />
+                  <AngleSVG angle={target} color="var(--success)" size={svgSize} sw={3} />
+                </>
+              )}
+            </svg>
+          </div>
+
+          {/* Legend */}
+          <div style={{ display:'flex', gap:16, fontSize:12, color:'var(--text-tertiary)' }}>
+            {!showFeedback && <span style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:14, height:2, background:'var(--accent)', borderRadius:1 }} /> What angle?</span>}
+            {showFeedback && <>
+              <span style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:14, height:2, background:'var(--success)', borderRadius:1 }} /> Correct</span>
+              <span style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:14, height:2, background:'var(--error)', borderRadius:1 }} /> Yours</span>
+            </>}
+          </div>
+
+          {/* Slider */}
+          {!showFeedback && (
+            <div style={{ width:'100%' }}>
+              <input type="range" min={0} max={180} step={0.5} value={guess}
+                onChange={e => setGuess(parseFloat(e.target.value))}
+                style={{ width:'100%', background:`linear-gradient(to right, var(--accent) ${(guess/180)*100}%, var(--bg-elevated) ${(guess/180)*100}%)` }} />
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:8, fontSize:12, color:'var(--text-tertiary)' }}>
+                <span className="mono">0&deg;</span>
+                <span className="mono" style={{ color:'var(--accent)', fontSize:16, fontWeight:600 }}>{guess}&deg;</span>
+                <span className="mono">180&deg;</span>
+              </div>
+            </div>
+          )}
+
+          {/* Feedback */}
+          {showFeedback && currentResult && (
+            <div className="card scale-in" style={{ display:'flex', alignItems:'center', gap:20, width:'100%' }}>
+              <ScoreRing score={currentResult.finalScore} size={80} />
+              <div style={{ flex:1 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                  <span style={{ color:'var(--text-tertiary)', fontSize:12 }}>You said</span>
+                  <span className="mono" style={{ color:'var(--accent)', fontWeight:600 }}>{currentResult.guess}&deg;</span>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                  <span style={{ color:'var(--text-tertiary)', fontSize:12 }}>It was</span>
+                  <span className="mono" style={{ fontWeight:600 }}>{currentResult.target}&deg;</span>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between' }}>
+                  <span style={{ color:'var(--text-tertiary)', fontSize:12 }}>Off by</span>
+                  <span className="mono" style={{ color: scoreColor(currentResult.finalScore), fontWeight:600 }}>{currentResult.thetaDiff}&deg;</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action */}
+          {!showFeedback ? (
+            <button onClick={handleCheck} className="btn btn-primary" style={{ width:'100%' }}>Check</button>
+          ) : (
+            <button onClick={handleNext} className="btn btn-secondary" style={{ width:'100%' }}>
+              {round < 4 ? 'Next Round' : 'See Results'}
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════
+    // RESULTS PAGE
+    // ═══════════════════════════════════════
+
+    function ResultsPage({ results, seed, roomCode, otherPlayers, onPlayAgain, onShowScoring, onHome }) {
+      const total = results.reduce((s, r) => s + r.finalScore, 0);
+      const totalR = Math.round(total * 10) / 10;
+      const isDaily = seed === getDailySeed();
+      const grade = totalR >= 45 ? { l:'Perfect Eye', c:'var(--success)' } : totalR >= 38 ? { l:'Sharp', c:'#84cc16' } : totalR >= 30 ? { l:'Solid', c:'var(--warning)' } : totalR >= 20 ? { l:'Needs Work', c:'#fb923c' } : { l:'Blind Guess', c:'var(--error)' };
+
+      const barC = s => s >= 8 ? 'var(--success)' : s >= 5 ? 'var(--warning)' : 'var(--error)';
+
+      const label = roomCode ? `Challenge ${roomCode}` : isDaily ? `Daily ${new Date().toISOString().slice(0,10)}` : 'Practice';
+      const shareText = `Angle Master - ${label}\n${results.map(r => { const b = Math.round(r.finalScore); return `${'█'.repeat(b)}${'░'.repeat(10-b)} ${r.finalScore.toFixed(1)}`; }).join('\n')}\nTotal: ${totalR}/50${roomCode ? `\nJoin: ${location.origin}${location.pathname}?room=${roomCode}` : ''}`;
+
+      const [copied, setCopied] = useState(false);
+      const handleCopy = () => { navigator.clipboard.writeText(shareText).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false), 2000); };
+
+      // Combine players for leaderboard
+      const allPlayers = [{ name: getPlayerName(), total: totalR, results, isMe: true }, ...otherPlayers];
+      allPlayers.sort((a, b) => b.total - a.total);
+
+      return (
+        <div className="fade-in" style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:20, width:'100%', maxWidth:440, margin:'0 auto', padding:'0 20px' }}>
+          <span className="badge" style={{ background:'var(--accent-subtle)', color: grade.c }}>{grade.l}</span>
+
+          <div style={{ textAlign:'center' }}>
+            <div className="mono tabular" style={{ fontSize:56, fontWeight:700, lineHeight:1 }}>{totalR}</div>
+            <div style={{ color:'var(--text-tertiary)', fontSize:14, marginTop:4 }}>/50</div>
+          </div>
+
+          {/* Leaderboard (if multiplayer) */}
+          {allPlayers.length > 1 && (
+            <div className="card" style={{ width:'100%' }}>
+              <div style={{ fontSize:11, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-tertiary)', marginBottom:12 }}>Leaderboard</div>
+              {allPlayers.map((p, i) => (
+                <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'8px 0', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                  <span className="mono" style={{ width:24, fontSize:14, fontWeight:700, color: i === 0 ? 'var(--warning)' : 'var(--text-tertiary)' }}>#{i+1}</span>
+                  <span style={{ flex:1, fontWeight: p.isMe ? 600 : 400 }}>
+                    {p.name} {p.isMe && <span style={{ fontSize:11, color:'var(--accent)' }}>(you)</span>}
+                  </span>
+                  <span className="mono" style={{ fontWeight:600, color: i === 0 ? 'var(--success)' : 'var(--text)' }}>{p.total}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Breakdown */}
+          <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:6 }}>
+            {results.map((r, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span className="mono" style={{ color:'var(--text-tertiary)', fontSize:12, width:18, textAlign:'right' }}>{i+1}</span>
+                <div style={{ flex:1, height:28, background:'var(--bg-elevated)', borderRadius:'var(--radius-sm)', overflow:'hidden', position:'relative' }}>
+                  <div style={{ height:'100%', width:`${(r.finalScore/10)*100}%`, background:barC(r.finalScore), borderRadius:'var(--radius-sm)', transition:'width 0.6s cubic-bezier(0.4,0,0.2,1)' }} />
+                  <span className="mono" style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', fontSize:11, color:'var(--text-secondary)', opacity:0.8 }}>{r.target}&deg; vs {r.guess}&deg;</span>
+                </div>
+                <span className="mono" style={{ fontSize:13, fontWeight:600, width:36, textAlign:'right' }}>{r.finalScore.toFixed(1)}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Share block */}
+          <div className="card" style={{ width:'100%', fontFamily:"'JetBrains Mono',monospace", fontSize:11, color:'var(--text-secondary)', whiteSpace:'pre', lineHeight:1.8, padding:16 }}>
+            {shareText}
+          </div>
+
+          <div style={{ display:'flex', gap:10, width:'100%' }}>
+            <button onClick={handleCopy} className="btn btn-secondary" style={{ flex:1 }}>{copied ? 'Copied!' : 'Copy'}</button>
+            <button onClick={onPlayAgain} className="btn btn-primary" style={{ flex:1 }}>Play Again</button>
+          </div>
+
+          <div style={{ display:'flex', gap:16 }}>
+            <button onClick={onShowScoring} className="btn-ghost btn" style={{ fontSize:13 }}>Scoring</button>
+            <button onClick={onHome} className="btn-ghost btn" style={{ fontSize:13 }}>Home</button>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════
+    // SCORING PAGE
+    // ═══════════════════════════════════════
+
+    function ScoringPage({ onBack }) {
+      const [dt, setDt] = useState(90);
+      const [dg, setDg] = useState(85);
+      const dr = computeAngleE(dt, dg);
+
+      const Section = ({ n, title, code, desc }) => (
+        <div className="card" style={{ marginBottom:12 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+            <span style={{ background:'var(--accent)', color:'#fff', fontSize:11, fontWeight:700, width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }}>{n}</span>
+            <h3 style={{ fontWeight:600, fontSize:15 }}>{title}</h3>
+          </div>
+          <pre className="mono" style={{ background:'var(--bg)', borderRadius:'var(--radius-sm)', padding:12, fontSize:12, color:'var(--accent-hover)', overflowX:'auto', lineHeight:1.6, border:'1px solid var(--border)' }}>{code}</pre>
+          <p style={{ color:'var(--text-tertiary)', fontSize:12, marginTop:8, lineHeight:1.5 }}>{desc}</p>
+        </div>
+      );
+
+      return (
+        <div className="fade-in" style={{ maxWidth:560, margin:'0 auto', padding:'0 20px 64px' }}>
+          <button onClick={onBack} className="btn btn-ghost" style={{ marginBottom:24, fontSize:13 }}>&larr; Back</button>
+          <h1 style={{ fontSize:28, fontWeight:700, marginBottom:8 }}>AngleE Scoring</h1>
+          <p style={{ color:'var(--text-secondary)', fontSize:14, lineHeight:1.6, marginBottom:32 }}>
+            A perceptual scoring system. Not all degree errors feel equal to the human eye.
+          </p>
+
+          <Section n={1} title="Angular Difference" code="theta_diff = min(|target - guess|, 180 - |target - guess|)" desc="Shortest angular distance, bounded [0, 90]." />
+          <Section n={2} title="Perceptual Distance" code={"angleE = theta_diff * sensitivityFactor(target)\n\nsensitivity = 1 + 0.8 * max(\n  exp(-distToCardinal / 12),\n  exp(-distToDiagonal / 14) * 0.6\n)"} desc="Errors near cardinal angles (0, 45, 90) cost more. Oblique effect." />
+          <Section n={3} title="S-Curve" code="baseScore = 10 / (1 + (angleE / 9.8) ^ 1.62)" desc="~4.5deg = 7.5 score, ~9deg = 5.0, ~18deg = 2.0." />
+          <Section n={4} title="Recovery & Penalty" code={"recovery = (10 - base) * (1 - (diff/4)^1.4) * 0.28\npenalty  = base * max(0, (diff-12)/45) * 0.18\nfinal   = clamp(base + recovery - penalty, 0, 10)"} desc="Near-misses on cardinals get recovery. Big misses on easy angles get penalized." />
+
+          <h2 style={{ fontSize:20, fontWeight:600, margin:'32px 0 16px' }}>Interactive Demo</h2>
+          <div className="card">
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+              <div>
+                <label style={{ fontSize:11, color:'var(--text-tertiary)', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase' }}>Target</label>
+                <input type="range" min={0} max={180} value={dt} onChange={e=>setDt(+e.target.value)} style={{ width:'100%', marginTop:4, background:`linear-gradient(to right, var(--accent) ${(dt/180)*100}%, var(--bg-elevated) ${(dt/180)*100}%)` }} />
+                <span className="mono" style={{ fontSize:14 }}>{dt}&deg;</span>
+              </div>
+              <div>
+                <label style={{ fontSize:11, color:'var(--text-tertiary)', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase' }}>Guess</label>
+                <input type="range" min={0} max={180} value={dg} onChange={e=>setDg(+e.target.value)} style={{ width:'100%', marginTop:4, background:`linear-gradient(to right, var(--warning) ${(dg/180)*100}%, var(--bg-elevated) ${(dg/180)*100}%)` }} />
+                <span className="mono" style={{ color:'var(--warning)', fontSize:14 }}>{dg}&deg;</span>
+              </div>
+            </div>
+            <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}>
+              <div className="card" style={{ padding:0, overflow:'hidden', width:160, height:160 }}>
+                <svg width={160} height={160}><rect width={160} height={160} fill="var(--bg-card)" />
+                  <AngleSVG angle={dt} color="var(--accent)" size={160} sw={2.5} />
+                  <AngleSVG angle={dg} color="var(--warning)" opacity={0.6} size={160} sw={2} />
+                </svg>
+              </div>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 20px', fontSize:13 }}>
+              {[['Diff', dr.thetaDiff+'°','var(--text)'],['Sensitivity', dr.sf+'x','var(--text)'],['AngleE', dr.angleE,'var(--accent)'],['Base', dr.baseScore,'var(--text)'],['Recovery', '+'+dr.recovery,'var(--success)'],['Penalty', '-'+dr.penalty,'var(--error)']].map(([l,v,c],i) => (
+                <div key={i} style={{ display:'flex', justifyContent:'space-between' }}>
+                  <span style={{ color:'var(--text-tertiary)', fontSize:12 }}>{l}</span>
+                  <span className="mono" style={{ color:c, fontWeight:500 }}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign:'center', paddingTop:12, marginTop:12, borderTop:'1px solid var(--border)' }}>
+              <div style={{ fontSize:11, color:'var(--text-tertiary)', fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase' }}>Final Score</div>
+              <div className="mono" style={{ fontSize:32, fontWeight:700 }}>{dr.finalScore}</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════
+    // NAME INPUT MODAL
+    // ═══════════════════════════════════════
+
+    function NameModal({ onSubmit, defaultName }) {
+      const [name, setName] = useState(defaultName);
+      return (
+        <div className="fade-in" style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100, padding:20 }}>
+          <div className="card scale-in" style={{ maxWidth:360, width:'100%', textAlign:'center' }}>
+            <h3 style={{ fontSize:18, fontWeight:600, marginBottom:4 }}>Your name</h3>
+            <p style={{ color:'var(--text-tertiary)', fontSize:13, marginBottom:16 }}>So your friends know who scored what.</p>
+            <input value={name} onChange={e => setName(e.target.value)} maxLength={20}
+              onKeyDown={e => e.key === 'Enter' && name.trim() && onSubmit(name.trim())}
+              style={{ width:'100%', padding:'12px 16px', borderRadius:'var(--radius-md)', border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontSize:15, fontFamily:'inherit', outline:'none', marginBottom:12 }}
+              placeholder="Enter your name" autoFocus />
+            <button onClick={() => name.trim() && onSubmit(name.trim())} className="btn btn-primary" style={{ width:'100%' }} disabled={!name.trim()}>
+              Join Game
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════
+    // MAIN APP
+    // ═══════════════════════════════════════
+
+    function App() {
+      const [theme, setTheme] = useState(() => localStorage.getItem('am_theme') || 'dark');
+      const [page, setPage] = useState('home');
+      const [seed, setSeed] = useState(null);
+      const [roomCode, setRoomCode] = useState(null);
+      const [results, setResults] = useState(null);
+      const [otherPlayers, setOtherPlayers] = useState([]);
+      const [showNameModal, setShowNameModal] = useState(false);
+      const [pendingMode, setPendingMode] = useState(null);
+
+      useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('am_theme', theme); }, [theme]);
+
+      // Check URL for room code on load
+      useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const room = params.get('room');
+        if (room) {
+          setRoomCode(room);
+          setShowNameModal(true);
+          setPendingMode('room');
+        }
+      }, []);
+
+      // Save results to localStorage for room-based games
+      useEffect(() => {
+        if (results && roomCode) {
+          const key = `am_room_${roomCode}`;
+          const existing = JSON.parse(localStorage.getItem(key) || '[]');
+          const myEntry = { name: getPlayerName(), total: Math.round(results.reduce((s,r)=>s+r.finalScore,0)*10)/10, results, ts: Date.now() };
+          const updated = [...existing.filter(e => e.name !== myEntry.name), myEntry];
+          localStorage.setItem(key, JSON.stringify(updated));
+        }
+      }, [results, roomCode]);
+
+      // Poll for other players in room
+      useEffect(() => {
+        if (!roomCode || !results) return;
+        const poll = () => {
+          const key = `am_room_${roomCode}`;
+          const all = JSON.parse(localStorage.getItem(key) || '[]');
+          setOtherPlayers(all.filter(p => p.name !== getPlayerName()).map(p => ({ ...p, isMe: false })));
+        };
+        poll();
+        const iv = setInterval(poll, 2000);
+        return () => clearInterval(iv);
+      }, [roomCode, results]);
+
+      const startGame = (mode) => {
+        if (mode === 'daily') { setSeed(getDailySeed()); setRoomCode(null); setPage('game'); }
+        else if (mode === 'practice') { setSeed(Math.floor(Math.random() * 999999)); setRoomCode(null); setPage('game'); }
+        else if (mode === 'challenge') { setShowNameModal(true); setPendingMode('newChallenge'); }
+        else if (mode === 'room') {
+          setSeed(seedFromCode(roomCode));
+          setPage('game');
+        }
+      };
+
+      const handleNameSubmit = (name) => {
+        localStorage.setItem('am_name', name);
+        setShowNameModal(false);
+        if (pendingMode === 'newChallenge') {
+          const code = generateRoomCode();
+          setRoomCode(code);
+          setSeed(seedFromCode(code));
+          window.history.replaceState(null, '', `?room=${code}`);
+          setPage('game');
+        } else if (pendingMode === 'room') {
+          setSeed(seedFromCode(roomCode));
+          setPage('game');
+        }
+      };
+
+      const handleFinish = (res) => { setResults(res); setPage('results'); };
+      const handlePlayAgain = () => { setSeed(Math.floor(Math.random()*999999)); setRoomCode(null); window.history.replaceState(null,'',location.pathname); setPage('game'); };
+      const handleHome = () => { setResults(null); setRoomCode(null); setOtherPlayers([]); window.history.replaceState(null,'',location.pathname); setPage('home'); };
+
+      return (
+        <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent: page === 'scoring' ? 'flex-start' : 'center', padding: page === 'scoring' ? '48px 0' : '32px 0' }}>
+          <ThemeToggle theme={theme} setTheme={setTheme} />
+          {showNameModal && <NameModal onSubmit={handleNameSubmit} defaultName={getPlayerName()} />}
+
+          {page === 'home' && (
+            <div className="fade-in" style={{ maxWidth:400, width:'100%', textAlign:'center', padding:'0 20px' }}>
+              <div style={{ marginBottom:24 }}>
+                <svg width={64} height={64} viewBox="0 0 64 64" style={{ marginBottom:8 }}>
+                  <AngleSVG angle={57} color="var(--accent)" size={64} sw={2.5} />
+                </svg>
+                <h1 style={{ fontSize:40, fontWeight:700, letterSpacing:'-0.03em', lineHeight:1.1 }}>
+                  Angle<span style={{ color:'var(--accent)' }}>Master</span>
+                </h1>
+                <p style={{ color:'var(--text-tertiary)', fontSize:14, marginTop:8, lineHeight:1.5, maxWidth:280, margin:'8px auto 0' }}>
+                  See the angle. Guess the degrees. Perceptual scoring, not raw difference.
+                </p>
+              </div>
+
+              <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:24 }}>
+                <button onClick={() => startGame('daily')} className="btn btn-primary" style={{ width:'100%', padding:'16px 24px', fontSize:16 }}>
+                  Daily Challenge
+                </button>
+                <button onClick={() => startGame('practice')} className="btn btn-secondary" style={{ width:'100%', padding:'16px 24px', fontSize:16 }}>
+                  Practice
+                </button>
+                <button onClick={() => startGame('challenge')} className="btn btn-secondary" style={{ width:'100%', padding:'16px 24px', fontSize:16, borderColor:'var(--accent)', color:'var(--accent)' }}>
+                  Challenge Friends
+                </button>
+              </div>
+
+              <button onClick={() => setPage('scoring')} className="btn btn-ghost" style={{ fontSize:13 }}>How scoring works</button>
+            </div>
+          )}
+
+          {page === 'game' && seed !== null && (
+            <div>
+              {roomCode && (
+                <div className="fade-in" style={{ textAlign:'center', marginBottom:16 }}>
+                  <span className="badge" style={{ background:'var(--accent-subtle)', color:'var(--accent)', fontSize:13, padding:'6px 14px' }}>
+                    Room: <span className="mono" style={{ fontWeight:700 }}>{roomCode}</span>
+                  </span>
+                  <div style={{ marginTop:8 }}>
+                    <button className="btn btn-ghost" style={{ fontSize:12, padding:'4px 10px' }}
+                      onClick={() => { navigator.clipboard.writeText(`${location.origin}${location.pathname}?room=${roomCode}`); }}>
+                      Copy invite link
+                    </button>
+                  </div>
+                </div>
+              )}
+              <GamePage key={seed} onFinish={handleFinish} seed={seed} playerName={roomCode ? getPlayerName() : null} />
+            </div>
+          )}
+
+          {page === 'results' && results && (
+            <ResultsPage results={results} seed={seed} roomCode={roomCode} otherPlayers={otherPlayers}
+              onPlayAgain={handlePlayAgain} onShowScoring={() => setPage('scoring')} onHome={handleHome} />
+          )}
+
+          {page === 'scoring' && <ScoringPage onBack={() => setPage(results ? 'results' : 'home')} />}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
